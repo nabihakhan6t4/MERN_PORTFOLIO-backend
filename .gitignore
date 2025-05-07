@@ -1,6 +1,11 @@
+# Ignore node_modules folder
+node_modules/
 
-node_modules
+# Ignore the Vercel deployment folder
+.vercel/
 
-config
+# Ignore config folder
+config/
 
-.vercel
+# Ignore temporary files
+tmp/
