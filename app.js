@@ -18,7 +18,7 @@ dotenv.config({ path: "./config/config.env" });
 const app = express();
 
 // CORS
-const allowedOrigins = ['https://nabihakhan6t4.github.io'];
+const allowedOrigins = ['https://nabihakhan6t4.github.io' , ];
 app.use(cors({
   origin: allowedOrigins,
   credentials: true
@@ -26,7 +26,7 @@ app.use(cors({
 
 // CORS Headers manually (extra)
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://nabihakhan6t4.github.io");
+  res.header("Access-Control-Allow-Origin", "https://nabihakhan6t4.github.io" );
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   res.header("Access-Control-Allow-Credentials", "true");
