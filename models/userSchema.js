@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import crypto from "crypto"
+import crypto from "crypto";
 const userSchema = new mongoose.Schema({
   fullName: {
     type: String,
@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "Password Required!"],
     minLength: [8, "Password Must Contain At Least 8 Characters!"],
-    select: false
+    select: false,
   },
   avatar: {
     public_id: {
@@ -80,11 +80,12 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 };
 
 userSchema.methods.generateJsonWebToken = function () {
+  const expiresIn = process.env.JWT_EXPIRES || "7d";
+
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRES,
+    expiresIn: expiresIn,
   });
 };
-
 
 //Generating Reset Password Token
 userSchema.methods.getResetPasswordToken = function () {

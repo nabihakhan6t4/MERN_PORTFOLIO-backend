@@ -4,7 +4,7 @@ export const dbConnection = () => {
   mongoose
     .connect(process.env.MONGO_URI, {
       dbName: "MERN_STACK_PERSONAL_PORTFOLIO",
-      serverSelectionTimeoutMS: 60000,
+      serverSelectionTimeoutMS: 5000,
     })
     .then(() => {
       console.log("Connected to database!");
