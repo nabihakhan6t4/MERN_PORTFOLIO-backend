@@ -1,14 +1,14 @@
 export const generateToken = (user, message, statusCode, res) => {
-  const token = user.generateJsonWebToken(); // Make sure this method sets the JWT expiration
+  const token = user.generateJsonWebToken({
+    expiresIn: process.env.JWT_EXPIRES || "7d",
+  });
 
-  // Convert COOKIE_EXPIRES from days to milliseconds
-  const expiresInDays = parseInt(process.env.COOKIE_EXPIRES) || 7; // Default to 7 days if the value is not set
-  const expiresInMilliseconds = expiresInDays * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-  
+  const expiresInDays = parseInt(process.env.COOKIE_EXPIRES) || 7;
+  const expiresInSeconds = expiresInDays * 24 * 60 * 60; // Seconds
   res
     .status(statusCode)
     .cookie("token", token, {
-      expires: new Date(Date.now() + expiresInMilliseconds), // Set the expiration for the cookie
+      expires: new Date(Date.now() + expiresInSeconds * 1000), // Convert seconds to milliseconds
       httpOnly: true,
     })
     .json({
