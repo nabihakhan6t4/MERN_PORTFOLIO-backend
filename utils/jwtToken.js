@@ -4,12 +4,15 @@ export const generateToken = (user, message, statusCode, res) => {
   });
 
   const expiresInDays = parseInt(process.env.COOKIE_EXPIRES) || 7;
-  const expiresInSeconds = expiresInDays * 24 * 60 * 60; // Seconds
+  const expiresInSeconds = expiresInDays * 24 * 60 * 60;
+
   res
     .status(statusCode)
     .cookie("token", token, {
-      expires: new Date(Date.now() + expiresInSeconds * 1000), // Convert seconds to milliseconds
+      expires: new Date(Date.now() + expiresInSeconds * 1000),
       httpOnly: true,
+      secure: true,         
+      sameSite: "None",     
     })
     .json({
       success: true,

@@ -18,7 +18,7 @@ dotenv.config({ path: "./config/config.env" });
 const app = express();
 
 // CORS
-const allowedOrigins = ['https://nabihakhan6t4.github.io' , ];
+const allowedOrigins = ['https://nabihakhan6t4.github.io'  ];
 app.use(cors({
   origin: allowedOrigins,
   credentials: true
