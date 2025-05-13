@@ -8,6 +8,11 @@ cloudinary.v2.config({
 });
 
 
+console.log("Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("API Key:", process.env.CLOUDINARY_API_KEY);
+console.log("API Secret:", process.env.CLOUDINARY_API_SECRET ? "Present" : "Missing");
+
+
 app.listen(process.env.PORT, () => {
   console.log(`Server listening at port ${process.env.PORT}`);
 });
