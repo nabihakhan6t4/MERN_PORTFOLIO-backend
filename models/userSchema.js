@@ -80,10 +80,8 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 };
 
 userSchema.methods.generateJsonWebToken = function () {
-  const expiresIn = process.env.JWT_EXPIRES || "7d";
-
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: expiresIn,
+    expiresIn: process.env.JWT_EXPIRES,
   });
 };
 

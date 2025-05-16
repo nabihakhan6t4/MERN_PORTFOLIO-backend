@@ -72,7 +72,11 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     },
     
   });
-  generateToken(user, "Registered!", 201, res);
+  // generateToken(user, "Registered!", 201, res);
+  res.status(200).json({
+    success:true,
+    message:"User Registered"
+  })
 });
 
 export const login = catchAsyncErrors(async (req, res, next) => {

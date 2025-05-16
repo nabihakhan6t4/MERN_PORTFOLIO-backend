@@ -28,6 +28,8 @@ export const addNewProject = catchAsyncErrors(async (req, res, next) => {
   ) {
     return next(new ErrorHandler("Please Provide All Details!", 400));
   }
+console.log("TEMP FILE PATH:", projectBanner.tempFilePath);
+
   const cloudinaryResponse = await cloudinary.uploader.upload(
     projectBanner.tempFilePath,
     { folder: "PORTFOLIO PROJECT IMAGES" }
