@@ -4,33 +4,41 @@ import ErrorHandler from "../middlewares/error.js";
 
 export const sendMessage = catchAsyncErrors(async (req, res, next) => {
   const { senderName, subject, message } = req.body;
+
   if (!senderName || !subject || !message) {
-    return next(new ErrorHandler("Please Fill Full Form!", 400));
+    return next(new ErrorHandler("Please fill the full form!", 400));
   }
+
   const data = await Message.create({ senderName, subject, message });
+
   res.status(201).json({
     success: true,
-    message: "Message Sent",
+    message: "Message sent successfully",
     data,
   });
 });
 
 export const deleteMessage = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
+
   const message = await Message.findById(id);
+
   if (!message) {
-    return next(new ErrorHandler("Message Already Deleted!", 400));
+    return next(new ErrorHandler("Message already deleted or not found!", 404));
   }
+
   await message.deleteOne();
-  res.status(201).json({
+
+  res.status(200).json({
     success: true,
-    message: "Message Deleted",
+    message: "Message deleted successfully",
   });
 });
 
 export const getAllMessages = catchAsyncErrors(async (req, res, next) => {
   const messages = await Message.find();
-  res.status(201).json({
+
+  res.status(200).json({
     success: true,
     messages,
   });

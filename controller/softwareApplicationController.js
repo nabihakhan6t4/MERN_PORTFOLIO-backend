@@ -6,32 +6,37 @@ import { v2 as cloudinary } from "cloudinary";
 export const addNewApplication = catchAsyncErrors(async (req, res, next) => {
   if (!req.files || Object.keys(req.files).length === 0) {
     return next(
-      new ErrorHandler("Software Application Icon/Image Required!", 404)
+      new ErrorHandler("Software Application Icon/Image is required!", 400)
     );
   }
+
   const { svg } = req.files;
   const { name } = req.body;
+
   if (!name) {
-    return next(new ErrorHandler("Please Provide Software's Name!", 400));
+    return next(new ErrorHandler("Please provide the software's name!", 400));
   }
-  const cloudinaryResponse = await cloudinary.uploader.upload(
-    svg.tempFilePath,
-    { folder: "PORTFOLIO SOFTWARE APPLICATION IMAGES" }
-  );
+
+  const cloudinaryResponse = await cloudinary.uploader.upload(svg.tempFilePath, {
+    folder: "PORTFOLIO SOFTWARE APPLICATION IMAGES",
+  });
+
   if (!cloudinaryResponse || cloudinaryResponse.error) {
     console.error(
-      "Cloudinary Error:",
+      "Cloudinary upload error:",
       cloudinaryResponse.error || "Unknown Cloudinary error"
     );
-    return next(new ErrorHandler("Failed to upload avatar to Cloudinary", 500));
+    return next(new ErrorHandler("Failed to upload image to Cloudinary", 500));
   }
+
   const softwareApplication = await SoftwareApplication.create({
     name,
     svg: {
-      public_id: cloudinaryResponse.public_id, // Set your cloudinary public_id here
-      url: cloudinaryResponse.secure_url, // Set your cloudinary secure_url here
+      public_id: cloudinaryResponse.public_id,
+      url: cloudinaryResponse.secure_url,
     },
   });
+
   res.status(201).json({
     success: true,
     message: "New Software Application Added!",
@@ -41,13 +46,15 @@ export const addNewApplication = catchAsyncErrors(async (req, res, next) => {
 
 export const deleteApplication = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
-  let softwareApplication = await SoftwareApplication.findById(id);
+  const softwareApplication = await SoftwareApplication.findById(id);
+
   if (!softwareApplication) {
-    return next(new ErrorHandler("Already Deleted!", 404));
+    return next(new ErrorHandler("Software Application not found!", 404));
   }
-  const softwareApplicationSvgId = softwareApplication.svg.public_id;
-  await cloudinary.uploader.destroy(softwareApplicationSvgId);
+
+  await cloudinary.uploader.destroy(softwareApplication.svg.public_id);
   await softwareApplication.deleteOne();
+
   res.status(200).json({
     success: true,
     message: "Software Application Deleted!",
@@ -56,6 +63,7 @@ export const deleteApplication = catchAsyncErrors(async (req, res, next) => {
 
 export const getAllApplications = catchAsyncErrors(async (req, res, next) => {
   const softwareApplications = await SoftwareApplication.find();
+
   res.status(200).json({
     success: true,
     softwareApplications,

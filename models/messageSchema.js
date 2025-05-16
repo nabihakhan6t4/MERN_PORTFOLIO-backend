@@ -3,19 +3,25 @@ import mongoose from "mongoose";
 const messageSchema = new mongoose.Schema({
   senderName: {
     type: String,
-    minLength: [2, "Name Must Contain At Least 2 Characters!"],
+    required: [true, "Sender name is required!"],
+    minLength: [2, "Name must contain at least 2 characters!"],
+    trim: true,
   },
   subject: {
     type: String,
-    minLength: [2, "Subject Must Contain At Least 2 Characters!"],
+    required: [true, "Subject is required!"],
+    minLength: [2, "Subject must contain at least 2 characters!"],
+    trim: true,
   },
   message: {
     type: String,
-    minLength: [2, "Message Must Contain At Least 2 Characters!"],
+    required: [true, "Message is required!"],
+    minLength: [2, "Message must contain at least 2 characters!"],
+    trim: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now(),
+    default: Date.now,
   },
 });
 

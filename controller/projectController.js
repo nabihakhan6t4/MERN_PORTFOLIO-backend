@@ -5,8 +5,9 @@ import { v2 as cloudinary } from "cloudinary";
 
 export const addNewProject = catchAsyncErrors(async (req, res, next) => {
   if (!req.files || Object.keys(req.files).length === 0) {
-    return next(new ErrorHandler("Project Banner Image Required!", 404));
+    return next(new ErrorHandler("Project Banner Image Required!", 400));
   }
+
   const { projectBanner } = req.files;
   const {
     title,
@@ -17,6 +18,7 @@ export const addNewProject = catchAsyncErrors(async (req, res, next) => {
     technologies,
     deployed,
   } = req.body;
+
   if (
     !title ||
     !description ||
@@ -28,19 +30,16 @@ export const addNewProject = catchAsyncErrors(async (req, res, next) => {
   ) {
     return next(new ErrorHandler("Please Provide All Details!", 400));
   }
-console.log("TEMP FILE PATH:", projectBanner.tempFilePath);
 
   const cloudinaryResponse = await cloudinary.uploader.upload(
     projectBanner.tempFilePath,
     { folder: "PORTFOLIO PROJECT IMAGES" }
   );
+
   if (!cloudinaryResponse || cloudinaryResponse.error) {
-    console.error(
-      "Cloudinary Error:",
-      cloudinaryResponse.error || "Unknown Cloudinary error"
-    );
-    return next(new ErrorHandler("Failed to upload avatar to Cloudinary", 500));
+    return next(new ErrorHandler("Failed to upload project banner to Cloudinary", 500));
   }
+
   const project = await Project.create({
     title,
     description,
@@ -50,10 +49,11 @@ console.log("TEMP FILE PATH:", projectBanner.tempFilePath);
     technologies,
     deployed,
     projectBanner: {
-      public_id: cloudinaryResponse.public_id, 
-      url: cloudinaryResponse.secure_url, // Set your cloudinary secure_url here
+      public_id: cloudinaryResponse.public_id,
+      url: cloudinaryResponse.secure_url,
     },
   });
+
   res.status(201).json({
     success: true,
     message: "New Project Added!",
@@ -71,31 +71,39 @@ export const updateProject = catchAsyncErrors(async (req, res, next) => {
     projectLink: req.body.projectLink,
     gitRepoLink: req.body.gitRepoLink,
   };
+
   if (req.files && req.files.projectBanner) {
     const projectBanner = req.files.projectBanner;
     const project = await Project.findById(req.params.id);
-    const projectImageId = project.projectBanner.public_id;
-    await cloudinary.uploader.destroy(projectImageId);
+
+    if (!project) {
+      return next(new ErrorHandler("Project not found!", 404));
+    }
+
+    // Delete old image from cloudinary
+    await cloudinary.uploader.destroy(project.projectBanner.public_id);
+
+    // Upload new image
     const newProjectImage = await cloudinary.uploader.upload(
       projectBanner.tempFilePath,
-      {
-        folder: "PORTFOLIO PROJECT IMAGES",
-      }
+      { folder: "PORTFOLIO PROJECT IMAGES" }
     );
+
     newProjectData.projectBanner = {
       public_id: newProjectImage.public_id,
       url: newProjectImage.secure_url,
     };
   }
-  const project = await Project.findByIdAndUpdate(
-    req.params.id,
-    newProjectData,
-    {
-      new: true,
-      runValidators: true,
-      useFindAndModify: false,
-    }
-  );
+
+  const project = await Project.findByIdAndUpdate(req.params.id, newProjectData, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!project) {
+    return next(new ErrorHandler("Project not found!", 404));
+  }
+
   res.status(200).json({
     success: true,
     message: "Project Updated!",
@@ -106,12 +114,14 @@ export const updateProject = catchAsyncErrors(async (req, res, next) => {
 export const deleteProject = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
   const project = await Project.findById(id);
+
   if (!project) {
-    return next(new ErrorHandler("Already Deleted!", 404));
+    return next(new ErrorHandler("Project already deleted or not found!", 404));
   }
-  const projectImageId = project.projectBanner.public_id;
-  await cloudinary.uploader.destroy(projectImageId);
+
+  await cloudinary.uploader.destroy(project.projectBanner.public_id);
   await project.deleteOne();
+
   res.status(200).json({
     success: true,
     message: "Project Deleted!",
@@ -120,6 +130,7 @@ export const deleteProject = catchAsyncErrors(async (req, res, next) => {
 
 export const getAllProjects = catchAsyncErrors(async (req, res, next) => {
   const projects = await Project.find();
+
   res.status(200).json({
     success: true,
     projects,
@@ -128,15 +139,14 @@ export const getAllProjects = catchAsyncErrors(async (req, res, next) => {
 
 export const getSingleProject = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
-  try {
-    const project = await Project.findById(id);
-    res.status(200).json({
-      success: true,
-      project,
-    });
-  } catch (error) {
-    res.status(400).json({
-      error,
-    });
+  const project = await Project.findById(id);
+
+  if (!project) {
+    return next(new ErrorHandler("Project not found!", 404));
   }
+
+  res.status(200).json({
+    success: true,
+    project,
+  });
 });

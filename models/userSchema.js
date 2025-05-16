@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+
 const userSchema = new mongoose.Schema({
   fullName: {
     type: String,
@@ -10,10 +11,16 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, "Email Required!"],
+    unique: true,
+    match: [
+      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      "Please Enter a Valid Email",
+    ],
   },
   phone: {
     type: String,
     required: [true, "Phone Required!"],
+    match: [/^03[0-9]{9}$/, "Please Enter a Valid Pakistani Phone Number"],
   },
   aboutMe: {
     type: String,
@@ -70,9 +77,10 @@ const userSchema = new mongoose.Schema({
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
-    next();
+    return next();
   }
   this.password = await bcrypt.hash(this.password, 10);
+  next();
 });
 
 userSchema.methods.comparePassword = async function (enteredPassword) {
@@ -85,18 +93,15 @@ userSchema.methods.generateJsonWebToken = function () {
   });
 };
 
-//Generating Reset Password Token
+// Generating Reset Password Token
 userSchema.methods.getResetPasswordToken = function () {
-  //Generating Token
   const resetToken = crypto.randomBytes(20).toString("hex");
 
-  //Hashing and Adding Reset Password Token To UserSchema
   this.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
 
-  //Setting Reset Password Token Expiry Time
   this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
 
   return resetToken;

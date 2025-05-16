@@ -8,35 +8,39 @@ import { sendEmail } from "../utils/sendEmail.js";
 
 export const register = catchAsyncErrors(async (req, res, next) => {
   if (!req.files || Object.keys(req.files).length === 0) {
-    return next(new ErrorHandler("Avatar Required!", 400));
+    return next(new ErrorHandler("Avatar and Resume are required!", 400));
   }
   const { avatar, resume } = req.files;
 
-  //POSTING AVATAR
+  if (!avatar) return next(new ErrorHandler("Avatar is required!", 400));
+  if (!resume) return next(new ErrorHandler("Resume is required!", 400));
+
+  // Upload avatar to Cloudinary
   const cloudinaryResponseForAvatar = await cloudinary.uploader.upload(
     avatar.tempFilePath,
-    { folder: "PORTFOLIO AVATAR" }
+    { folder: "PORTFOLIO_AVATAR" }
   );
   if (!cloudinaryResponseForAvatar || cloudinaryResponseForAvatar.error) {
     console.error(
       "Cloudinary Error:",
-      cloudinaryResponseForAvatar.error || "Unknown Cloudinary error"
+      cloudinaryResponseForAvatar?.error || "Unknown Cloudinary error"
     );
     return next(new ErrorHandler("Failed to upload avatar to Cloudinary", 500));
   }
 
-  //POSTING RESUME
+  // Upload resume to Cloudinary
   const cloudinaryResponseForResume = await cloudinary.uploader.upload(
     resume.tempFilePath,
-    { folder: "PORTFOLIO RESUME" }
+    { folder: "PORTFOLIO_RESUME" }
   );
   if (!cloudinaryResponseForResume || cloudinaryResponseForResume.error) {
     console.error(
       "Cloudinary Error:",
-      cloudinaryResponseForResume.error || "Unknown Cloudinary error"
+      cloudinaryResponseForResume?.error || "Unknown Cloudinary error"
     );
     return next(new ErrorHandler("Failed to upload resume to Cloudinary", 500));
   }
+
   const {
     fullName,
     email,
@@ -50,6 +54,15 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     facebookURL,
     linkedInURL,
   } = req.body;
+
+  // Optional: Add server-side validation here for required fields like email, password, fullName
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return next(new ErrorHandler("User with this email already exists.", 400));
+  }
+
   const user = await User.create({
     fullName,
     email,
@@ -70,27 +83,23 @@ export const register = catchAsyncErrors(async (req, res, next) => {
       public_id: cloudinaryResponseForResume.public_id,
       url: cloudinaryResponseForResume.secure_url,
     },
-    
   });
-  // generateToken(user, "Registered!", 201, res);
-  res.status(200).json({
-    success:true,
-    message:"User Registered"
-  })
+
+  generateToken(user, "User Registered Successfully!", 201, res);
 });
 
 export const login = catchAsyncErrors(async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return next(new ErrorHandler("Provide Email And Password!", 400));
+    return next(new ErrorHandler("Provide Email and Password!", 400));
   }
   const user = await User.findOne({ email }).select("+password");
   if (!user) {
-    return next(new ErrorHandler("Invalid Email Or Password!", 404));
+    return next(new ErrorHandler("Invalid Email or Password!", 401));
   }
   const isPasswordMatched = await user.comparePassword(password);
   if (!isPasswordMatched) {
-    return next(new ErrorHandler("Invalid Email Or Password", 401));
+    return next(new ErrorHandler("Invalid Email or Password!", 401));
   }
   generateToken(user, "Login Successfully!", 200, res);
 });
@@ -110,6 +119,9 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
 
 export const getUser = catchAsyncErrors(async (req, res, next) => {
   const user = await User.findById(req.user.id);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
   res.status(200).json({
     success: true,
     user,
@@ -129,17 +141,22 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     twitterURL: req.body.twitterURL,
     linkedInURL: req.body.linkedInURL,
   };
+
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
   if (req.files && req.files.avatar) {
     const avatar = req.files.avatar;
-    const user = await User.findById(req.user.id);
-    const profileImageId = user.avatar.public_id;
-    await cloudinary.uploader.destroy(profileImageId);
-    const newProfileImage = await cloudinary.uploader.upload(
-      avatar.tempFilePath,
-      {
-        folder: "PORTFOLIO AVATAR",
-      }
-    );
+    // Delete old avatar
+    if (user.avatar?.public_id) {
+      await cloudinary.uploader.destroy(user.avatar.public_id);
+    }
+    // Upload new avatar
+    const newProfileImage = await cloudinary.uploader.upload(avatar.tempFilePath, {
+      folder: "PORTFOLIO_AVATAR",
+    });
     newUserData.avatar = {
       public_id: newProfileImage.public_id,
       url: newProfileImage.secure_url,
@@ -148,13 +165,13 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 
   if (req.files && req.files.resume) {
     const resume = req.files.resume;
-    const user = await User.findById(req.user.id);
-    const resumeFileId = user.resume.public_id;
-    if (resumeFileId) {
-      await cloudinary.uploader.destroy(resumeFileId);
+    // Delete old resume
+    if (user.resume?.public_id) {
+      await cloudinary.uploader.destroy(user.resume.public_id);
     }
+    // Upload new resume
     const newResume = await cloudinary.uploader.upload(resume.tempFilePath, {
-      folder: "PORTFOLIO RESUME",
+      folder: "PORTFOLIO_RESUME",
     });
     newUserData.resume = {
       public_id: newResume.public_id,
@@ -162,63 +179,71 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     };
   }
 
-  const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+  const updatedUser = await User.findByIdAndUpdate(req.user.id, newUserData, {
     new: true,
     runValidators: true,
-    useFindAndModify: false,
   });
+
   res.status(200).json({
     success: true,
     message: "Profile Updated!",
-    user,
+    user: updatedUser,
   });
 });
 
 export const updatePassword = catchAsyncErrors(async (req, res, next) => {
   const { currentPassword, newPassword, confirmNewPassword } = req.body;
-  const user = await User.findById(req.user.id).select("+password");
   if (!currentPassword || !newPassword || !confirmNewPassword) {
-    return next(new ErrorHandler("Please Fill All Fields.", 400));
+    return next(new ErrorHandler("Please fill all fields.", 400));
+  }
+  const user = await User.findById(req.user.id).select("+password");
+  if (!user) {
+    return next(new ErrorHandler("User not found.", 404));
   }
   const isPasswordMatched = await user.comparePassword(currentPassword);
   if (!isPasswordMatched) {
-    return next(new ErrorHandler("Incorrect Current Password!"));
+    return next(new ErrorHandler("Incorrect current password!", 401));
   }
   if (newPassword !== confirmNewPassword) {
-    return next(
-      new ErrorHandler("New Password And Confirm New Password Do Not Match!")
-    );
+    return next(new ErrorHandler("New password and confirm password do not match!", 400));
   }
   user.password = newPassword;
   await user.save();
+
   res.status(200).json({
     success: true,
-    message: "Password Updated!",
+    message: "Password updated!",
   });
 });
 
 export const getUserForPortfolio = catchAsyncErrors(async (req, res, next) => {
+  // Ideally, id should come from req.params or be configurable, not hardcoded
   const id = "680781fc446abfd755a0fb1e";
   const user = await User.findById(id);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
   res.status(200).json({
     success: true,
     user,
   });
 });
 
-//FORGOT PASSWORD
 export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email });
+  const { email } = req.body;
+  if (!email) {
+    return next(new ErrorHandler("Please provide your email!", 400));
+  }
+  const user = await User.findOne({ email });
   if (!user) {
-    return next(new ErrorHandler("User Not Found!", 404));
+    return next(new ErrorHandler("User not found!", 404));
   }
   const resetToken = user.getResetPasswordToken();
-
   await user.save({ validateBeforeSave: false });
 
   const resetPasswordUrl = `${process.env.PORTFOLIO_URL}/password/reset/${resetToken}`;
 
-  const message = `Here is your password reset link: \n\n ${resetPasswordUrl}  \n\n If you did not request a password reset, you can safely ignore this email.`;
+  const message = `Here is your password reset link:\n\n${resetPasswordUrl}\n\nIf you did not request a password reset, please ignore this email.`;
 
   try {
     await sendEmail({
@@ -226,9 +251,9 @@ export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
       subject: `Personal Portfolio Dashboard Password Recovery`,
       message,
     });
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: `Email sent to ${user.email} successfully`,
+      message: `Email sent to ${user.email} successfully.`,
     });
   } catch (error) {
     user.resetPasswordToken = undefined;
@@ -238,34 +263,35 @@ export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-//RESET PASSWORD
 export const resetPassword = catchAsyncErrors(async (req, res, next) => {
   const { token } = req.params;
   const resetPasswordToken = crypto
     .createHash("sha256")
     .update(token)
     .digest("hex");
+
   const user = await User.findOne({
     resetPasswordToken,
     resetPasswordExpire: { $gt: Date.now() },
   });
+
   if (!user) {
-    return next(
-      new ErrorHandler(
-        "Reset password token is invalid or has been expired.",
-        400
-      )
-    );
+    return next(new ErrorHandler("Reset password token is invalid or has expired.", 400));
   }
 
-  if (req.body.password !== req.body.confirmPassword) {
-    return next(new ErrorHandler("Password & Confirm Password do not match"));
+  const { password, confirmPassword } = req.body;
+  if (!password || !confirmPassword) {
+    return next(new ErrorHandler("Please provide both password and confirm password.", 400));
   }
-  user.password = await req.body.password;
+  if (password !== confirmPassword) {
+    return next(new ErrorHandler("Password and confirm password do not match.", 400));
+  }
+
+  user.password = password;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
 
   await user.save();
 
-  generateToken(user, "Reset Password Successfully!", 200, res);
+  generateToken(user, "Password reset successfully!", 200, res);
 });
