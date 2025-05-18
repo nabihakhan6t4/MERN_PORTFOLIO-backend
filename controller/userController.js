@@ -218,7 +218,7 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 
 export const getUserForPortfolio = catchAsyncErrors(async (req, res, next) => {
   // Ideally, id should come from req.params or be configurable, not hardcoded
-  const id = "680781fc446abfd755a0fb1e";
+  const id = "6827356da63a7a983ee178af";
   const user = await User.findById(id);
   if (!user) {
     return next(new ErrorHandler("User not found", 404));
@@ -241,7 +241,7 @@ export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
   const resetToken = user.getResetPasswordToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetPasswordUrl = `${process.env.PORTFOLIO_URL}/password/reset/${resetToken}`;
+  const resetPasswordUrl = `${process.env.DASHBOARD_URL}/password/reset/${resetToken}`;
 
   const message = `Here is your password reset link:\n\n${resetPasswordUrl}\n\nIf you did not request a password reset, please ignore this email.`;
 
