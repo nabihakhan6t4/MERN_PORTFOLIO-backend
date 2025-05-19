@@ -60,6 +60,14 @@ app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
+app.get('/envtest', (req, res) => {
+  res.json({
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+  });
+});
+
 dbConnection();
 app.use(errorMiddleware);
 
