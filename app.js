@@ -12,6 +12,7 @@ import messageRouter from "./routes/messageRouter.js";
 import skillRouter from "./routes/skillRouter.js";
 import softwareApplicationRouter from "./routes/softwareApplicationRouter.js";
 import projectRouter from "./routes/projectRouter.js";
+import testEnv from './routes/test-env.js';
 
 dotenv.config({ path: "./config/config.env" });
 
@@ -55,6 +56,7 @@ app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/skill", skillRouter);
 app.use("/api/v1/softwareapplication", softwareApplicationRouter);
 app.use("/api/v1/project", projectRouter);
+app.use('/api', testEnv);
 
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
