@@ -8,6 +8,8 @@ export const generateToken = (user, message, statusCode, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
+      //  secure: false, 
+      //  sameSite :"lax"
     })
     .json({
       success: true,
